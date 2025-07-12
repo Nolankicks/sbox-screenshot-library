@@ -10,10 +10,10 @@ using Sandbox;
 [Dock( "Editor", "Screenshot Editor", "camera" )]
 public class ScreenShotWindow : Widget
 {
-	public int width = 1920;
-	public int height = 1080;
-	public string fileName = "ScreenShot";
-	public string folderName = "";
+	public Vector2Int resolution { get; set; } = new Vector2Int( 1920, 1080 );
+	public string fileName { get; set; } = "ScreenShot";
+	public string folderName { get; set; } = "";
+	public ScreenShotFileFormat fileFormat { get; set; } = ScreenShotFileFormat.PNG;
 
 	public ScreenShotWindow( Widget parent ) : base( parent )
 	{
@@ -38,8 +38,8 @@ public class ScreenShotWindow : Widget
 
 		var controlSheet = new ControlSheet();
 
-		controlSheet.AddRow( so.GetProperty( "width" ) );
-		controlSheet.AddRow( so.GetProperty( "height" ) );
+		controlSheet.AddRow( so.GetProperty( "resolution" ) );
+		controlSheet.AddRow( so.GetProperty( "fileFormat" ) );
 		controlSheet.AddRow( so.GetProperty( "fileName" ) );
 		controlSheet.AddRow( so.GetProperty( "folderName" ) );
 		controlSheet.Margin = 0;
@@ -65,7 +65,7 @@ public class ScreenShotWindow : Widget
 
 	public void TakeScreenShot()
 	{
-		var pixMap = new Pixmap( width, height );
+		var pixMap = new Pixmap( resolution.x, resolution.y );
 
 		var camera = Game.IsPlaying ? Game.ActiveScene?.Camera : SceneEditorSession.Active.Scene?.Camera;
 
@@ -75,7 +75,7 @@ public class ScreenShotWindow : Widget
 			return;
 		}
 
-		var path = string.IsNullOrEmpty( folderName ) ? $"{Project.Current.GetRootPath().Replace( '\\', '/' )}/assets/{fileName}.png" : $"{Project.Current.GetRootPath().Replace( '\\', '/' )}/assets/{folderName}/{fileName}.png";
+		var path = string.IsNullOrEmpty( folderName ) ? $"{Project.Current.GetRootPath().Replace( '\\', '/' )}/assets/{fileName}" : $"{Project.Current.GetRootPath().Replace( '\\', '/' )}/assets/{folderName}/{fileName}";
 
 		var folderExists = Directory.Exists( Path.GetDirectoryName( path ) );
 
@@ -86,8 +86,29 @@ public class ScreenShotWindow : Widget
 		}
 
 		camera.RenderToPixmap( pixMap );
-		pixMap.SavePng( path );
 
-		Log.Warning( $"Screenshot saved to {path}" );
+		switch ( fileFormat )
+		{
+			case ScreenShotFileFormat.JPG:
+				if ( !path.EndsWith( ".jpg", System.StringComparison.OrdinalIgnoreCase ) )
+					path += ".jpg";
+
+				pixMap.SaveJpg( path );
+				Log.Info( $"Screenshot saved as JPG to {path}" );
+				break;
+			case ScreenShotFileFormat.PNG:
+				if ( !path.EndsWith( ".png", System.StringComparison.OrdinalIgnoreCase ) )
+					path += ".png";
+
+				pixMap.SavePng( path );
+				Log.Info( $"Screenshot saved as PNG to {path}" );
+				break;
+		}
 	}
+}
+
+public enum ScreenShotFileFormat
+{
+	PNG,
+	JPG,
 }
